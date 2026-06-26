@@ -10,6 +10,13 @@ CONFIG_FILE_NAME = ".goodfella_config"
 
 DEFAULT_CONFIG = {
     "provider": "Ollama",
+    "models": {
+        "ollama": "qwen2.5-coder:7b",
+        "openai": "gpt-4o",
+        "gemini": "gemini-1.5-pro",
+        "anthropic": "claude-3-5-sonnet-20240620",
+        "deepseek": "deepseek-coder"
+    },
     "api_keys": {
         "openai": "",
         "gemini": "",
@@ -42,11 +49,12 @@ def load_config() -> Dict[str, Any]:
             merged_config = DEFAULT_CONFIG.copy()
             merged_config.update(user_config)
             
-            # Merge das api_keys
-            if "api_keys" in user_config and isinstance(user_config["api_keys"], dict):
-                merged_keys = DEFAULT_CONFIG["api_keys"].copy()
-                merged_keys.update(user_config["api_keys"])
-                merged_config["api_keys"] = merged_keys
+            # Merge profundo dos sub-dicionários (models e api_keys)
+            for sub_key in ["models", "api_keys"]:
+                if sub_key in user_config and isinstance(user_config[sub_key], dict):
+                    merged_sub = DEFAULT_CONFIG[sub_key].copy()
+                    merged_sub.update(user_config[sub_key])
+                    merged_config[sub_key] = merged_sub
                 
             return merged_config
     except (json.JSONDecodeError, IOError):
