@@ -26,7 +26,7 @@ from goodfella.knowledge.rules import sync_rules
 from goodfella.llm.factory import get_llm
 from goodfella.llm.memory import load_history, save_message, clear_history
 from goodfella.cli.ui import console, show_spinner
-from goodfella.cli.commands import handle_setup, handle_status, handle_refresh, handle_rebuild, handle_help
+from goodfella.cli.commands import handle_setup, handle_status, handle_refresh, handle_rebuild, handle_help, handle_review
 
 def print_welcome():
     console.print("\n[bold magenta]🎩 Goodfella AI Pair Programmer[/bold magenta]")
@@ -90,10 +90,17 @@ def main() -> None:
             # Prepara a janela de contexto
             history = load_history()
             
-            system_prompt = (
-                "Você é o Goodfella, um AI Pair Programmer local-first ultra focado em "
-                "engenharia de software pragmática. Responda sempre em português, de forma direta."
-            )
+            if cmd.startswith("/review"):
+                user_msg, sys_prompt = handle_review(cmd)
+                if not user_msg:
+                    continue
+                user_input = user_msg
+                system_prompt = sys_prompt
+            else:
+                system_prompt = (
+                    "Você é o Goodfella, um AI Pair Programmer local-first ultra focado em "
+                    "engenharia de software pragmática. Responda sempre em português, de forma direta."
+                )
             
             messages = [SystemMessage(content=system_prompt)]
             messages.extend(history)

@@ -5,6 +5,10 @@ Módulo responsável pelos comandos utilitários da CLI.
 import shutil
 import questionary
 from rich.prompt import Prompt, Confirm
+from pathlib import Path
+from typing import Tuple, Optional
+
+from goodfella.rag.scanner import scan_workspace
 
 from goodfella.cli.ui import console, show_spinner
 from goodfella.core.config import load_config, save_config, DEFAULT_CONFIG
@@ -122,6 +126,7 @@ def handle_help() -> None:
         ("/status", "Mostra o status atual: provedor ativo, chaves e tamanho do banco vetorial."),
         ("/refresh", "Força a sincronização dos arquivos do projeto com o banco vetorial local."),
         ("/rebuild", "Apaga fisicamente o banco vetorial e reconstrói do zero (útil para corrupções)."),
+        ("/review [arquivos]", "Inicia revisão de código cruzada com regras arquiteturais via RAG."),
         ("/clear", "Limpa a tela do terminal."),
         ("/reset", "Apaga o histórico de conversação atual."),
         ("/exit ou /quit", "Encerra a aplicação.")
@@ -130,3 +135,86 @@ def handle_help() -> None:
     for cmd, desc in commands:
         console.print(f"  [bold cyan]{cmd}[/bold cyan] - {desc}")
     console.print()
+
+def handle_review(cmd: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Inicia o fluxo do comando /review.
+    - Se chamado sem argumentos, exibe menu interativo para escolha de arquivos.
+    - Se chamado com argumentos, pega os caminhos passados.
+    Lê os arquivos, busca regras no RAG usando fragmentos do código e injeta 
+    isso no System Prompt retornado, junto com uma breve mensagem de usuário.
+    """
+    parts = cmd.split(maxsplit=1)
+    files_to_review = []
+    
+    if len(parts) == 1:
+        valid_files = scan_workspace()
+        if not valid_files:
+            console.print("[warning]Nenhum arquivo encontrado no projeto para revisão.[/warning]")
+            return None, None
+            
+        choices = [str(p.relative_to(Path.cwd())) for p in valid_files]
+        selected = questionary.checkbox(
+            "Selecione os arquivos para review (Espaço para marcar, Enter para confirmar):",
+            choices=choices
+        ).ask()
+        
+        if not selected:
+            console.print("[info]Review cancelado.[/info]\n")
+            return None, None
+        files_to_review = selected
+    else:
+        raw_files = parts[1].replace(",", " ").split()
+        files_to_review = raw_files
+        
+    code_contents = []
+    for f in files_to_review:
+        f_path = Path.cwd() / f
+        if f_path.exists() and f_path.is_file():
+            try:
+                content = f_path.read_text(encoding="utf-8")
+                code_contents.append(f"--- Arquivo: {f} ---\n{content}")
+            except Exception:
+                console.print(f"[warning]Erro ao ler {f}[/warning]")
+        else:
+            console.print(f"[warning]Arquivo {f} não encontrado.[/warning]")
+            
+    if not code_contents:
+        return None, None
+        
+    combined_code = "\n\n".join(code_contents)
+    
+    client = get_client()
+    col = get_collection(client)
+    
+    query_text = combined_code[:1000]
+    
+    try:
+        results = col.query(
+            query_texts=[query_text],
+            n_results=5,
+            where={"is_rule": True}
+        )
+        if results and results.get("documents") and len(results["documents"]) > 0:
+            rules_context = "\n\n".join(results["documents"][0])
+        else:
+            rules_context = ""
+    except Exception as e:
+        console.print(f"[warning]Aviso: Falha ao buscar regras no RAG: {e}[/warning]")
+        rules_context = ""
+        
+    system_prompt = (
+        "Você é o Goodfella, um AI Pair Programmer focado em engenharia de software pragmática.\n"
+        "Realize um Code Review estrito do código do projeto atual.\n\n"
+        "CÓDIGO-FONTE A SER REVISADO:\n"
+        f"{combined_code}\n\n"
+        "REGRAS DE ARQUITETURA E ANTI-PATTERNS (RAG):\n"
+        f"{rules_context}\n\n"
+        "Forneça sua análise com base estritamente nas regras listadas (se aplicável) e nas boas práticas.\n"
+        "Não se desculpe, seja direto e liste sugestões práticas de código."
+    )
+    
+    user_message = f"/review {', '.join(files_to_review)}"
+    
+    return user_message, system_prompt
+
