@@ -26,10 +26,11 @@ from goodfella.knowledge.rules import sync_rules
 from goodfella.llm.factory import get_llm
 from goodfella.llm.memory import load_history, save_message, clear_history
 from goodfella.cli.ui import console, show_spinner
+from goodfella.cli.commands import handle_setup, handle_status, handle_refresh, handle_rebuild, handle_help
 
 def print_welcome():
     console.print("\n[bold magenta]🎩 Goodfella AI Pair Programmer[/bold magenta]")
-    console.print("[info]Comandos: /exit (sair) | /clear (limpar tela) | /reset (apagar histórico)[/info]\n")
+    console.print("[info]Digite /help para ver a lista de comandos disponíveis.[/info]\n")
 
 def main() -> None:
     """Ponto de entrada principal do comando `goodfella`.
@@ -69,6 +70,21 @@ def main() -> None:
             elif cmd == "/reset":
                 clear_history()
                 console.print("[info]Histórico apagado.[/info]\n")
+                continue
+            elif cmd == "/setup":
+                handle_setup()
+                continue
+            elif cmd == "/status":
+                handle_status()
+                continue
+            elif cmd == "/refresh":
+                handle_refresh()
+                continue
+            elif cmd == "/rebuild":
+                handle_rebuild()
+                continue
+            elif cmd == "/help":
+                handle_help()
                 continue
                 
             # Prepara a janela de contexto
