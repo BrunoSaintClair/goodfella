@@ -26,7 +26,7 @@ from goodfella.knowledge.rules import sync_rules
 from goodfella.llm.factory import get_llm
 from goodfella.llm.memory import load_history, save_message, clear_history
 from goodfella.cli.ui import console, show_spinner
-from goodfella.cli.commands import handle_setup, handle_status, handle_refresh, handle_rebuild, handle_help, handle_review, handle_deep_review
+from goodfella.cli.commands import handle_setup, handle_status, handle_refresh, handle_rebuild, handle_help, handle_review, handle_deep_review, handle_rule_add
 
 def print_welcome():
     console.print("\n[bold magenta]🎩 Goodfella AI Pair Programmer[/bold magenta]")
@@ -85,6 +85,9 @@ def main() -> None:
                 continue
             elif cmd == "/help":
                 handle_help()
+                continue
+            elif cmd.startswith("/rule add"):
+                handle_rule_add()
                 continue
                 
             # Prepara a janela de contexto
