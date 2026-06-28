@@ -16,34 +16,52 @@ O Goodfella analisa códigos, detecta violações de princípios (SOLID, Clean A
 
 ## Instalação
 
-### Via pip (quando publicado)
+A maneira recomendada de instalar o Goodfella globalmente na sua máquina é utilizando o **`pipx`** (que instala a CLI em um ambiente isolado, evitando o erro de ambiente gerenciado externamente no Linux/Mac):
 
+```bash
+pipx install goodfella
+```
+
+*Alternativamente, você pode instalar via pip tradicional:*
 ```bash
 pip install goodfella
 ```
 
-### Via código-fonte
-
-```bash
-git clone <repo-url>
-cd goodfella
-uv sync
-uv run goodfella
-```
-
 ## Uso
 
+Para iniciar o assistente, basta rodar o comando na raiz do diretório do seu projeto:
+
 ```bash
-# Inicia o chat interativo no diretório do seu projeto
-$ goodfella
+goodfella
 ```
+
+### Configurando o Provedor de IA (Local vs Cloud)
+
+O Goodfella foi desenhado para ser **Local-First**. Por padrão, ele tentará se conectar ao **Ollama** rodando localmente na sua máquina (porta 11434). Essa é a recomendação para máxima privacidade, já que seu código nunca sai do seu computador.
+
+**Como usar com o Ollama (Padrão):**
+1. Certifique-se de que o Ollama está instalado e rodando no seu terminal (`ollama serve`).
+2. Baixe o modelo padrão do Goodfella (Qwen 2.5 Coder):
+   ```bash
+   ollama pull qwen2.5-coder:7b
+   ```
+3. Rode o comando `goodfella` no seu projeto e a CLI se conectará automaticamente.
+
+Se você não possui uma GPU forte ou se deseja análises arquiteturais mais profundas usando outros modelos, o Goodfella possui integrações nativas com a nuvem.
+
+Como habilitar e usar provedores Cloud:
+
+**Interativamente (via chat):**
+Inicie o Goodfella normalmente e digite o comando `/setup`. Um menu interativo guiará você na escolha do provedor e na inserção segura da sua chave de API.
+
+**Dica:** Uma vez dentro do assistente, utilize o comando `/status` para auditar rapidamente qual provedor de IA e modelo específico estão assumindo o controle das respostas no momento.
 
 ### Comandos Principais
 
 | Comando | Descrição |
 |---------|-----------|
 | `/review` | Revisão estrita de Clean Architecture/SOLID |
-| `/deep-review` | Análise completa via modelo Cloud (bypass do RAG) |
+| `/deep-review` | Análise completa via modelo Cloud |
 | `/setup` | Assistente de configuração de provedor |
 | `/status` | Saúde do sistema e provedor ativo |
 | `/rule add` | Adicionar regra customizada |
